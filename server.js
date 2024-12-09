@@ -1,29 +1,25 @@
 const express = require('express');
-    const http = require('http');
-    const socketIo = require('socket.io');
-    const routes = require('./routes');
-    const authenticateToken = require('./middleware/auth');
+const path = require('path');
+const app = express();
 
-    const app = express();
-    const server = http.createServer(app);
-    const io = socketIo(server);
+// Security headers middleware
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+  );
+  next();
+});
 
-    // Middleware
-    app.use(express.json());
-    app.use('/api', authenticateToken);  // Protect all routes under /api
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, 'dist')));
 
-    // Routes
-    app.use('/', routes);
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
 
-    // Socket.IO
-    io.on('connection', (socket) => {
-      console.log('New user connected');
-
-      socket.on('disconnect', () => {
-        console.log('User disconnected');
-      });
-    });
-
-    server.listen(3000, () => {
-      console.log('Server is running on port 3000');
-    });
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
